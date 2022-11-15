@@ -1,6 +1,6 @@
 $fa=1;
 $fs=5;
-$fs=2;    // Uncomment for final render
+//$fs=2;    // Uncomment for final render
 
 base_height = 13;
 base_chamfer = 2;
@@ -16,6 +16,9 @@ tent_positions = [
     [-78, -61, -150, 11],
     ];
 
+module fail(message) {
+   assert(false, message);
+}
 
 // M5 bolt tenting
 boltRad = 5 / 2;
@@ -92,7 +95,7 @@ module foot_negative() {
         // This is the rubber around the head
         translate([0, 0, 11]) {
             scale([1, 1, 0.5])  sphere(r = 6.5);
-        } 
+        }
     }
 }
 
@@ -109,40 +112,53 @@ module foot_mold() {
     }
 }
 
-module original_base() {
+module report_side_parameter_validation_failed() {
+    fail("'side' parameter should have value either 'left' or 'right'");
+}
+
+module original_base(side) {
     // uses Improved Redox Rev.1 Case STL from https://www.thingiverse.com/thing:4835785/
     // The original file was fixed in Blender to be correct 2-mainfold model
-    translate([-306.3,63.43,0.06]) import("orig/BottomRight-fixed-mainfold.stl");
+
+    if (side == "left") {
+        translate([-73.7,63.43,0.06])
+            import("orig/BottomLeft-fixed-mainfold.stl");
+    } else if (side == "right") {
+        translate([-306.3,63.43,0.06])
+            import("orig/BottomRight-fixed-mainfold.stl");
+    } else {
+        report_side_parameter_validation_failed();
+    };
 }
 
-module base_outline() {
+module base_outline(side) {
     projection(cut=true)
         translate([0, 0, -base_height+1])
-        original_base();
+        original_base(side);
 }
 
-module base_walls() {
+module base_walls(side) {
         linear_extrude(height = base_height)
-        base_outline();
+        base_outline(side);
 }
 
-module filled_base() {
+module filled_base(side) {
         linear_extrude(height = base_height)
         fill()
-        base_outline();
+        base_outline(side);
 }
 
-module base_interior() {
+module base_interior(side) {
     difference() {
-        filled_base();
-        base_walls();
+        filled_base(side);
+        base_walls(side);
     }
 }
 
-module modified_base() {
+module modified_base(side) {
     difference() {
         union() {
-            original_base();
+            original_base(side);
 
             if (usb_interconnect) {
                 // Fill in TRRS hole, since we'll do something different
@@ -151,8 +167,16 @@ module modified_base() {
 
             for(i = [0:len(tent_positions)-1]) {
                 difference() {
-                    tent_support(tent_positions[i]);
-                    base_interior();
+                    if (side == "left") {
+                        mirror([1, 0, 0])
+                            tent_support(tent_positions[i]);
+                    } else if (side == "right") {
+                        tent_support(tent_positions[i]);
+                    } else {
+                        report_side_parameter_validation_failed();
+                    };
+
+                    base_interior(side);
                 }
             }
         }
@@ -163,8 +187,51 @@ module modified_base() {
     }
 }
 
-//mirror([1, 0, 0])
-modified_base();
+module usbc_connector(side) {
+    usbc_connector_height=3.3;
+    usbc_connector_width=9;
+
+    if (side == "left") {
+        color("red")
+        translate([-85.6, 63.45, base_height-usbc_connector_height])
+        rotate([90, 0, 0])
+        cube([usbc_connector_width, usbc_connector_height, 17]);
+    } else if (side == "right") {
+        color("red")
+        translate([85.6-usbc_connector_width, 63.45, base_height-usbc_connector_height])
+        rotate([90, 0, 0])
+        cube([usbc_connector_width, usbc_connector_height, 17]);
+    } else {
+        report_side_parameter_validation_failed();
+    };
+}
+
+translate([-100, 0, 0]) {
+    modified_base("left"); // set to "left" or "right"
+    translate([79.7, 0, -3.15])
+        usbc_connector("left");
+}
+
+translate([100, 0, 0]) {
+    modified_base("right"); // set to "left" or "right"
+    translate([-79.2, 0, -7.4])
+        usbc_connector("right");
+}
+
+//import("orig/BottomRight-fixed-mainfold.stl");
+//import("orig/BottomLeft.stl");
+
+//translate([79.7, 0, -3.15])
+//translate([0, 0, 0])
+    //usbc_connector(side);
+
+
+//translate([0, -19.5, 0])
+//    cube([4.2, 2, 2], center=true);
+
+//translate([0, 64.5, 0])
+//    cube([60, 2, 2], center=true);
+
 
 //micro_usb_bracket();
 
