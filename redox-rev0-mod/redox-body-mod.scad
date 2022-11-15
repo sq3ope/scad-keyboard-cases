@@ -217,21 +217,14 @@ translate([100, 0, 0]) {
     translate([-79.2, 0, -7.4])
         usbc_connector("right");
 }
+/*
+// positioning cubes
+translate([0, -19.5, 0])
+    cube([4.2, 2, 2], center=true);
 
-//import("orig/BottomRight-fixed-mainfold.stl");
-//import("orig/BottomLeft.stl");
-
-//translate([79.7, 0, -3.15])
-//translate([0, 0, 0])
-    //usbc_connector(side);
-
-
-//translate([0, -19.5, 0])
-//    cube([4.2, 2, 2], center=true);
-
-//translate([0, 64.5, 0])
-//    cube([60, 2, 2], center=true);
-
+translate([0, 64.5, 0])
+    cube([60, 2, 2], center=true);
+*/
 
 //micro_usb_bracket();
 
