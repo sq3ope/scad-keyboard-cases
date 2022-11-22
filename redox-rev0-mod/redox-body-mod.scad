@@ -193,32 +193,22 @@ module modified_base(side) {
     }
 }
 
-/*
-module usb_hole(side) {
-    if (side == "left") {
-        translate([-5.36, 60.53, 6.83])
-            cube([8.04, 1.4, 2.782]);
-    } else if (side == "right") {
-        translate([-2.1, 60.43, 2.52])
-            cube([8.07, 2, 2.9]);
-     } else {
-        report_side_parameter_validation_failed();
-    };
+module rectangle_with_rounded_corners(width, height, corner_radius) {
+    hull() {
+		translate( [-width/2+corner_radius, -height/2+corner_radius, 0] ) circle( corner_radius );
+		translate( [-width/2+corner_radius, height/2 - corner_radius, 0 ] ) circle( corner_radius );
+		translate( [width/2 - corner_radius, -height/2+corner_radius, 0] ) circle( corner_radius );
+		translate( [width/2 - corner_radius, height/2 - corner_radius, 0] ) circle( corner_radius );
+	}
 }
-*/
 
-module usbc_hole(side) {
-    if (side == "left") {
-        translate([-2.152, 56, 8.436])
-            scale([1.3, 1, 1.6])
-            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
-    } else if (side == "right") {
-        translate([2, 56, 4.75])
-            scale([1.3, 1, 1.6])
-            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
-     } else {
-        report_side_parameter_validation_failed();
-    };
+module usbc_connector_body(width, height, length) {
+    corner_radius = 1;
+
+    rotate([90, 0, 0])
+    translate([0, 0, -length/2])
+    linear_extrude(height = length)
+        rectangle_with_rounded_corners(width, height, corner_radius);
 }
 
 module usbc_connector(side) {
@@ -229,6 +219,20 @@ module usbc_connector(side) {
     } else if (side == "right") {
         color("red")
         translate([2, 56, 4.75])
+            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
+     } else {
+        report_side_parameter_validation_failed();
+    };
+}
+
+module usbc_hole(side) {
+    if (side == "left") {
+        translate([-2.152, 56, 8.436])
+            scale([1.3, 1, 1.6])
+            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
+    } else if (side == "right") {
+        translate([2, 56, 4.75])
+            scale([1.3, 1, 1.6])
             usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
      } else {
         report_side_parameter_validation_failed();
@@ -264,24 +268,6 @@ module base_with_corrected_usb(side) {
     }
 }
 
-module rectangle_with_rounded_corners(width, height, corner_radius) {
-    hull() {
-		translate( [-width/2+corner_radius, -height/2+corner_radius, 0] ) circle( corner_radius );
-		translate( [-width/2+corner_radius, height/2 - corner_radius, 0 ] ) circle( corner_radius );
-		translate( [width/2 - corner_radius, -height/2+corner_radius, 0] ) circle( corner_radius );
-		translate( [width/2 - corner_radius, height/2 - corner_radius, 0] ) circle( corner_radius );
-	}
-}
-
-module usbc_connector_body(width, height, length) {
-    corner_radius = 1;
-
-    rotate([90, 0, 0])
-    translate([0, 0, -length/2])
-    linear_extrude(height = length)
-        rectangle_with_rounded_corners(width, height, corner_radius);
-}
-
 translate([-100, 0, 0]) {
     intersection() {
         base_with_corrected_usb("left"); // set to "left" or "right"
@@ -304,15 +290,10 @@ translate([100, 0, 0]) {
     }
 }
 */
+
 /*
 // positioning cubes
-translate([0, -19.5, 0])
-    cube([4.2, 2, 2], center=true);
 
-translate([0, 64.5, 0])
-    cube([60, 2, 2], center=true);
-*/
-/*
 color("red")
 translate([-96.576, 64.5, 7.4])
     cube([2.15, 8, 1], center=true);
@@ -320,7 +301,7 @@ translate([-96.576, 64.5, 7.4])
 color("red")
 translate([-102, 64.5, 5.373])
     cube([1, 8, 1.225], center=true);
-  */
+*/
 
 //micro_usb_bracket();
 
