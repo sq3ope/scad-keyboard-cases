@@ -11,7 +11,7 @@ usbc_connector_height=3.3;
 usbc_connector_width=9;
 
 usb_interconnect = 0; // 0 = keep existing TRRS interconnect hole, 1 = mini-usb interconnect
-print_only_front_slice = 1;
+print_only_front_slice = 0;
 show_usbc_connector = 1;
 
 tent_positions = [
@@ -193,6 +193,7 @@ module modified_base(side) {
     }
 }
 
+/*
 module usb_hole(side) {
     if (side == "left") {
         translate([-5.36, 60.53, 6.83])
@@ -204,10 +205,11 @@ module usb_hole(side) {
         report_side_parameter_validation_failed();
     };
 }
+*/
 
 module usbc_hole(side) {
     if (side == "left") {
-        translate([-1.35, 56, 8.2])
+        translate([-2.152, 56, 8.436])
             scale([1.3, 1, 1.6])
             usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
     } else if (side == "right") {
@@ -222,7 +224,7 @@ module usbc_hole(side) {
 module usbc_connector(side) {
     if (side == "left") {
         color("red")
-        translate([-1.35, 56, 8.2])
+        translate([-2.152, 56, 8.436])
             usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
     } else if (side == "right") {
         color("red")
@@ -233,13 +235,22 @@ module usbc_connector(side) {
     };
 }
 
+module base_with_removed_usb_hole(side) {
+    union() {
+        difference() {
+            modified_base(side);
+            translate([-1.15, 60, 11.8])
+                cube([17.6, wall_thickness*10, base_height*1.5], center=true);
+        }
+
+        translate([-1.15, 60.43+wall_thickness, 7.5])
+            cube([17.6, wall_thickness, 11], center=true);
+    }
+}
+
 module base_with_corrected_usb(side) {
     difference() {
-        // fill original usb connector hole
-        union() {
-            modified_base(side);
-            usb_hole(side);
-        }
+        base_with_removed_usb_hole(side);
 
         // cut a new usbc hole
         translate([0, 0, usb_hole_vertical_corection])
@@ -281,7 +292,7 @@ translate([-100, 0, 0]) {
         }
     }
 }
-
+/*
 translate([100, 0, 0]) {
     intersection() {
         base_with_corrected_usb("right"); // set to "left" or "right"
@@ -292,7 +303,7 @@ translate([100, 0, 0]) {
         }
     }
 }
-
+*/
 /*
 // positioning cubes
 translate([0, -19.5, 0])
@@ -301,6 +312,15 @@ translate([0, -19.5, 0])
 translate([0, 64.5, 0])
     cube([60, 2, 2], center=true);
 */
+/*
+color("red")
+translate([-96.576, 64.5, 7.4])
+    cube([2.15, 8, 1], center=true);
+
+color("red")
+translate([-102, 64.5, 5.373])
+    cube([1, 8, 1.225], center=true);
+  */
 
 //micro_usb_bracket();
 
