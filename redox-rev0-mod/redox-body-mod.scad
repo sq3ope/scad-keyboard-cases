@@ -1,18 +1,21 @@
-$fa=1;
-$fs=5;
-//$fs=2;    // Uncomment for final render
-$fn=100;
+$fn = $preview ? 16 : 64;
+
+print_only_front_slice = 0;
+show_usbc_connector = 1;
+print_left_half = 1;
+print_right_half = 1;
 
 base_height = 13;
 base_chamfer = 2;
 wall_thickness = 2.0004;
-usb_hole_vertical_corection = -0.8;
+usb_hole_vertical_corection = 0;
+usb_hole_vertical_correction_for_right_half = -3.7;
+usb_hole_horizontal_correction = 0;
 usbc_connector_height=3.3;
 usbc_connector_width=9;
+usbc_connector_length = 12;
 
 usb_interconnect = 0; // 0 = keep existing TRRS interconnect hole, 1 = mini-usb interconnect
-print_only_front_slice = 0;
-show_usbc_connector = 1;
 
 tent_positions = [
     // [X, Y, Angle]
@@ -122,49 +125,42 @@ module report_side_parameter_validation_failed() {
     fail("'side' parameter should have value either 'left' or 'right'");
 }
 
-module original_base(side) {
+module original_base() {
     // uses Improved Redox Rev.1 Case STL from https://www.thingiverse.com/thing:4835785/
     // The original file was fixed in Blender to be correct 2-mainfold model
 
-    if (side == "left") {
-        translate([-73.7,63.43,0.06])
-            import("orig/BottomLeft-fixed-mainfold.stl");
-    } else if (side == "right") {
-        translate([-306.3,63.43,0.06])
-            import("orig/BottomRight-fixed-mainfold.stl");
-    } else {
-        report_side_parameter_validation_failed();
-    };
+    translate([-73.7,63.43,0.06])
+        import("orig/BottomLeft-fixed-mainfold.stl");
 }
 
-module base_outline(side) {
+module base_outline() {
     projection(cut=true)
         translate([0, 0, -base_height+1])
-        original_base(side);
+        original_base();
 }
 
-module base_walls(side) {
+module base_walls() {
         linear_extrude(height = base_height)
-        base_outline(side);
+        base_outline();
 }
 
-module filled_base(side) {
+module filled_base() {
         linear_extrude(height = base_height)
         fill()
-        base_outline(side);
+        base_outline();
 }
 
-module base_interior(side) {
+module base_interior() {
     difference() {
-        filled_base(side);
-        base_walls(side);
+        filled_base();
+        base_walls();
     }
 }
 
-module modified_base(side) {
+module modified_base() {
     difference() {
         union() {
-            original_base(side);
+            original_base();
 
             if (usb_interconnect) {
                 // Fill in TRRS hole, since we'll do something different
@@ -173,16 +169,10 @@ module modified_base(side) {
 
             for(i = [0:len(tent_positions)-1]) {
                 difference() {
-                    if (side == "left") {
-                        mirror([1, 0, 0])
-                            tent_support(tent_positions[i]);
-                    } else if (side == "right") {
+                    mirror([1, 0, 0])
                         tent_support(tent_positions[i]);
-                    } else {
-                        report_side_parameter_validation_failed();
-                    };
 
-                    base_interior(side);
+                    base_interior();
                 }
             }
         }
@@ -211,38 +201,22 @@ module usbc_connector_body(width, height, length) {
         rectangle_with_rounded_corners(width, height, corner_radius);
 }
 
-module usbc_connector(side) {
-    if (side == "left") {
-        color("red")
-        translate([-2.152, 56, 8.436])
-            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
-    } else if (side == "right") {
-        color("red")
-        translate([2, 56, 4.75])
-            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
-     } else {
-        report_side_parameter_validation_failed();
-    };
+module usbc_connector() {
+    color("red")
+    translate([-2.152, 57.5, 7.636])
+        usbc_connector_body(usbc_connector_width, usbc_connector_height, usbc_connector_length);
 }
 
-module usbc_hole(side) {
-    if (side == "left") {
-        translate([-2.152, 56, 8.436])
-            scale([1.3, 1, 1.6])
-            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
-    } else if (side == "right") {
-        translate([2, 56, 4.75])
-            scale([1.3, 1, 1.6])
-            usbc_connector_body(usbc_connector_width, usbc_connector_height, 17);
-     } else {
-        report_side_parameter_validation_failed();
-    };
+module usbc_hole() {
+    translate([-2.152, 57.5, 7.636])
+        scale([1.3, 1, 1.6])
+        usbc_connector_body(usbc_connector_width, usbc_connector_height, usbc_connector_length);
 }
 
-module base_with_removed_usb_hole(side) {
+module base_with_removed_usb_hole() {
     union() {
         difference() {
-            modified_base(side);
+            modified_base();
             translate([-1.15, 60, 11.8])
                 cube([17.6, wall_thickness*10, base_height*1.5], center=true);
         }
@@ -253,24 +227,35 @@ module base_with_removed_usb_hole(side) {
 }
 
 module base_with_corrected_usb(side) {
+    if (side == "left") {
+        base_with_corrected_usb_internal(usb_hole_vertical_corection);
+    } else if (side == "right") {
+        base_with_corrected_usb_internal(usb_hole_vertical_corection + usb_hole_vertical_correction_for_right_half);
+    } else {
+        report_side_parameter_validation_failed();
+    };
+
+}
+
+module base_with_corrected_usb_internal(vertical_correction) {
     difference() {
-        base_with_removed_usb_hole(side);
+        base_with_removed_usb_hole();
 
         // cut a new usbc hole
-        translate([0, 0, usb_hole_vertical_corection])
-            usbc_hole(side);
+        translate([usb_hole_horizontal_correction, 0, vertical_correction])
+            usbc_hole();
     }
 
     // visualize pro micro connector position
     if (show_usbc_connector) {
-        translate([0, 0, usb_hole_vertical_corection])
-            usbc_connector(side);
+        translate([usb_hole_horizontal_correction, 0, vertical_correction])
+            usbc_connector();
     }
 }
 
-translate([-100, 0, 0]) {
+module final_half(side) {
     intersection() {
-        base_with_corrected_usb("left"); // set to "left" or "right"
+        base_with_corrected_usb(side);
         if (print_only_front_slice) {
             color("green")
                 translate([-100, 53, -5])
@@ -278,21 +263,22 @@ translate([-100, 0, 0]) {
         }
     }
 }
-/*
-translate([100, 0, 0]) {
-    intersection() {
-        base_with_corrected_usb("right"); // set to "left" or "right"
-        if (print_only_front_slice) {
-            color("green")
-                translate([-100, 53, -5])
-                cube([200, wall_thickness*10, base_height*1.5]);
-        }
+
+if (print_left_half) {
+    translate([-100, 0, 0]) {
+        final_half("left");
     }
 }
-*/
+
+if (print_right_half) {
+    translate([100, 0, 0]) {
+        mirror([1, 0, 0])
+        final_half("right");
+    }
+}
 
 /*
-// positioning cubes
+// connector positioning cubes
 
 color("red")
 translate([-96.576, 64.5, 7.4])
