@@ -1,16 +1,22 @@
 $fn = $preview ? 16 : 64;
 
 print_only_front_slice = 0;
-show_usbc_connector = 1;
+show_usbc_connector = 0;
 print_left_half = 1;
 print_right_half = 1;
 
 base_height = 13;
 base_chamfer = 2;
 wall_thickness = 2.0004;
-usb_hole_vertical_corection = 0;
+
+usb_hole_vertical_correction = 0;
 usb_hole_vertical_correction_for_right_half = -3.7;
 usb_hole_horizontal_correction = 0;
+
+jack_hole_horizontal_correction = 0;
+jack_hole_horizontal_correction_for_right_half = -4.2;
+jack_hole_vertical_correction = 0;
+
 usbc_connector_height=3.3;
 usbc_connector_width=9;
 usbc_connector_length = 12;
@@ -201,6 +207,13 @@ module usbc_connector_body(width, height, length) {
         rectangle_with_rounded_corners(width, height, corner_radius);
 }
 
+module jack_body(diameter, length) {
+    rotate([90, 0, 0])
+    translate([0, 0, -length/2])
+    cylinder(length, diameter/2, diameter/2);
+}
+
+
 module usbc_connector() {
     color("red")
     translate([-2.152, 57.5, 7.636])
@@ -213,37 +226,62 @@ module usbc_hole() {
         usbc_connector_body(usbc_connector_width, usbc_connector_height, usbc_connector_length);
 }
 
-module base_with_removed_usb_hole() {
+module jack_hole(scale) {
+    color("red")
+    translate([57.1, 62, 7.1])
+        scale(scale)
+            jack_body(7.5, wall_thickness*2);
+}
+
+module base_with_removed_usb_and_jack_hole() {
     union() {
         difference() {
             modified_base();
+            // cut out original usb port
             translate([-1.15, 60, 11.8])
                 cube([17.6, wall_thickness*10, base_height*1.5], center=true);
+            // cut out original jack port
+            translate([57, 60.43+wall_thickness, 7.5])
+                cube([13, wall_thickness*4, 11], center=true);
         }
 
+        // insert a wall in place of cutted out usb port
         translate([-1.15, 60.43+wall_thickness, 7.5])
             cube([17.6, wall_thickness, 11], center=true);
+
+        // insert a wall in place of cutted out jack port
+        translate([57, 60.43+wall_thickness, 7.5])
+            cube([13, wall_thickness, 11], center=true);
     }
 }
 
 module base_with_corrected_usb(side) {
     if (side == "left") {
-        base_with_corrected_usb_internal(usb_hole_vertical_corection);
+        base_with_corrected_usb_internal(usb_hole_vertical_correction, jack_hole_horizontal_correction);
     } else if (side == "right") {
-        base_with_corrected_usb_internal(usb_hole_vertical_corection + usb_hole_vertical_correction_for_right_half);
+        base_with_corrected_usb_internal(usb_hole_vertical_correction + usb_hole_vertical_correction_for_right_half, jack_hole_horizontal_correction + jack_hole_horizontal_correction_for_right_half);
     } else {
         report_side_parameter_validation_failed();
     };
 
 }
 
-module base_with_corrected_usb_internal(vertical_correction) {
+module base_with_corrected_usb_internal(usb_hole_vertical_correction, jack_hole_horizontal_correction) {
     difference() {
-        base_with_removed_usb_hole();
+        union() {
+            base_with_removed_usb_and_jack_hole();
+            // jack hole collar
+            translate([jack_hole_horizontal_correction, 0, jack_hole_vertical_correction])
+                jack_hole([1.5, 1, 1.5]);
+        }
 
         // cut a new usbc hole
-        translate([usb_hole_horizontal_correction, 0, vertical_correction])
+        translate([usb_hole_horizontal_correction, 0, usb_hole_vertical_correction])
             usbc_hole();
+
+        // cut a new jack hole
+        translate([jack_hole_horizontal_correction, 0, jack_hole_vertical_correction])
+            jack_hole([1, 2, 1]);
     }
 
     // visualize pro micro connector position
